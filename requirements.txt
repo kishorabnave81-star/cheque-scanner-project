@@ -1,0 +1,9 @@
+streamlit
+google-genai
+python-dotenv
+pillow
+pandas
+openpyxl
+pymupdf
+opencv-python-headless
+numpy
