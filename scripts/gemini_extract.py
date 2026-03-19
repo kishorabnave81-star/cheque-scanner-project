@@ -5,14 +5,26 @@ from dotenv import load_dotenv
 from google import genai
 from validate_cheque import validate_cheque_data
 
-env_path = r"C:\Users\Saurabh\Desktop\cheque_scanner_project\.env"
-load_dotenv(env_path)
+try:
+    import streamlit as st
+except Exception:
+    st = None
 
-API_KEY = "AIzaSyAfMmT_mVM8x1yL0wZRduBxIQnBWnoyGfM"
-GOOGLE_API_KEY=AIzaSyAfMmT_mVM8x1yL0wZRduBxIQnBWnoyGfM
+load_dotenv()
+
+API_KEY = None
+
+if st is not None:
+    try:
+        API_KEY = st.secrets["GOOGLE_API_KEY"]
+    except Exception:
+        pass
 
 if not API_KEY:
-    raise ValueError("GOOGLE_API_KEY not found in .env file")
+    API_KEY = os.getenv("GOOGLE_API_KEY")
+
+if not API_KEY:
+    raise ValueError("GOOGLE_API_KEY not found in Streamlit secrets or .env")
 
 client = genai.Client(api_key=API_KEY)
 
