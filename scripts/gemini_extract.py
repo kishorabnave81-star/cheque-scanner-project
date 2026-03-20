@@ -3,6 +3,7 @@ import json
 from PIL import Image
 from dotenv import load_dotenv
 from google import genai
+from validate_cheque import validate_cheque_data
 
 try:
     import streamlit as st
@@ -11,30 +12,25 @@ except Exception:
 
 load_dotenv()
 
+API_KEY = None
 
-def get_api_key():
-    api_key = None
+if st is not None:
+    try:
+        API_KEY = st.secrets["GOOGLE_API_KEY"]
+    except Exception:
+        pass
 
-    if st is not None:
-        try:
-            api_key = st.secrets["GOOGLE_API_KEY"]
-        except Exception:
-            pass
+if not API_KEY:
+    API_KEY = os.getenv("GOOGLE_API_KEY")
 
-    if not api_key:
-        api_key = os.getenv("GOOGLE_API_KEY")
+if not API_KEY:
+    raise ValueError("GOOGLE_API_KEY not found in Streamlit secrets or .env")
 
-    if not api_key:
-        raise ValueError("GOOGLE_API_KEY not found in Streamlit secrets or .env")
-
-    return api_key
+client = genai.Client(api_key=API_KEY)
 
 
 def extract_cheque_data(original_image_path, crop_image_path=None):
     try:
-        api_key = get_api_key()
-        client = genai.Client(api_key=api_key)
-
         original_img = Image.open(original_image_path)
 
         prompt = """
@@ -46,7 +42,7 @@ Rules:
 - Return JSON only
 - No explanation
 - No markdown
-- If a field is missing, use nulls
+- If a field is missing, use null
 - Keep field names exactly as given below
 
 Required JSON format:
@@ -71,14 +67,15 @@ Required JSON format:
             contents.append(crop_img)
 
         response = client.models.generate_content(
-           model="gemini-1.5-flash",
+            model="gemini-1.5-flash",
             contents=contents
         )
 
         raw_text = response.text.strip()
 
         try:
-            return json.loads(raw_text)
+            data = json.loads(raw_text)
+            return data
         except json.JSONDecodeError:
             return {
                 "error": "Invalid JSON returned by Gemini",
@@ -88,4 +85,20 @@ Required JSON format:
     except Exception as e:
         return {
             "error": f"Gemini API call failed: {type(e).__name__}: {str(e)}"
-        }s
+        }
+
+
+if __name__ == "__main__":
+    original_path = r"C:\Users\Saurabh\Desktop\cheque_scanner_project\processed_images\page_1.png"
+    crop_path = None
+
+    extracted_data = extract_cheque_data(original_path, crop_path)
+    print("EXTRACTED DATA:")
+    print(json.dumps(extracted_data, indent=4))
+
+    if "error" not in extracted_data:
+        validation_result = validate_cheque_data(extracted_data)
+        print("\nVALIDATION RESULT:")
+        print(json.dumps(validation_result, indent=4))
+    else:
+        print("\nVALIDATION SKIPPED DUE TO EXTRACTION ERROR")
