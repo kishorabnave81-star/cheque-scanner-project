@@ -3,7 +3,6 @@ import json
 from PIL import Image
 from dotenv import load_dotenv
 from google import genai
-from validate_cheque import validate_cheque_data
 
 try:
     import streamlit as st
@@ -91,19 +90,3 @@ Required JSON format:
         return {
             "error": f"Gemini API call failed: {type(e).__name__}: {str(e)}"
         }
-
-
-if __name__ == "__main__":
-    original_path = r"C:\Users\Saurabh\Desktop\cheque_scanner_project\processed_images\page_1.png"
-    crop_path = None
-
-    extracted_data = extract_cheque_data(original_path, crop_path)
-    print("EXTRACTED DATA:")
-    print(json.dumps(extracted_data, indent=4))
-
-    if "error" not in extracted_data:
-        validation_result = validate_cheque_data(extracted_data)
-        print("\nVALIDATION RESULT:")
-        print(json.dumps(validation_result, indent=4))
-    else:
-        print("\nVALIDATION SKIPPED DUE TO EXTRACTION ERROR")
