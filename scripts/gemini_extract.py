@@ -78,8 +78,7 @@ Required JSON format:
         raw_text = response.text.strip()
 
         try:
-            data = json.loads(raw_text)
-            return data
+            return json.loads(raw_text)
         except json.JSONDecodeError:
             return {
                 "error": "Invalid JSON returned by Gemini",
@@ -89,4 +88,4 @@ Required JSON format:
     except Exception as e:
         return {
             "error": f"Gemini API call failed: {type(e).__name__}: {str(e)}"
-        }
+        }s
