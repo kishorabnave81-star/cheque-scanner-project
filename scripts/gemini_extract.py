@@ -12,27 +12,33 @@ except Exception:
 
 load_dotenv()
 
-API_KEY = None
 
-if st is not None:
-    try:
-        API_KEY = st.secrets["GOOGLE_API_KEY"]
-    except Exception:
-        pass
+def get_api_key():
+    api_key = None
 
-if not API_KEY:
-    API_KEY = os.getenv("GOOGLE_API_KEY")
+    if st is not None:
+        try:
+            api_key = st.secrets["GOOGLE_API_KEY"]
+        except Exception:
+            pass
 
-if not API_KEY:
-    raise ValueError("GOOGLE_API_KEY not found in Streamlit secrets or .env")
+    if not api_key:
+        api_key = os.getenv("GOOGLE_API_KEY")
 
-client = genai.Client(api_key=API_KEY)
+    if not api_key:
+        raise ValueError("GOOGLE_API_KEY not found in Streamlit secrets or .env")
+
+    return api_key
 
 
 def extract_cheque_data(original_image_path, crop_image_path=None):
-    original_img = Image.open(original_image_path)
+    try:
+        api_key = get_api_key()
+        client = genai.Client(api_key=api_key)
 
-    prompt = """
+        original_img = Image.open(original_image_path)
+
+        prompt = """
 You are a cheque data extraction system.
 
 Extract cheque information from the provided image(s) and return ONLY valid JSON.
@@ -59,26 +65,31 @@ Required JSON format:
 }
 """
 
-    contents = [prompt, original_img]
+        contents = [prompt, original_img]
 
-    if crop_image_path and os.path.exists(crop_image_path):
-        crop_img = Image.open(crop_image_path)
-        contents.append(crop_img)
+        if crop_image_path and os.path.exists(crop_image_path):
+            crop_img = Image.open(crop_image_path)
+            contents.append(crop_img)
 
-    response = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=contents
-    )
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=contents
+        )
 
-    raw_text = response.text.strip()
+        raw_text = response.text.strip()
 
-    try:
-        data = json.loads(raw_text)
-        return data
-    except json.JSONDecodeError:
+        try:
+            data = json.loads(raw_text)
+            return data
+        except json.JSONDecodeError:
+            return {
+                "error": "Invalid JSON returned by Gemini",
+                "raw_output": raw_text
+            }
+
+    except Exception as e:
         return {
-            "error": "Invalid JSON returned by Gemini",
-            "raw_output": raw_text
+            "error": f"Gemini API call failed: {type(e).__name__}: {str(e)}"
         }
 
 
