@@ -46,7 +46,7 @@ Rules:
 - Return JSON only
 - No explanation
 - No markdown
-- If a field is missing, use null
+- If a field is missing, use nulls
 - Keep field names exactly as given below
 
 Required JSON format:
